@@ -1,4 +1,5 @@
 import unittest
+import os
 import traceback
 from abc import ABC, abstractmethod
 import psycopg
@@ -6,13 +7,19 @@ from psycopg.sql import SQL, Identifier
 import AppSettings
 import Tools
 import random
-from SplitterSimple import SplitterSimple
-from EmbeddingsSimple import EmbeddingsSimple
+from SplitterIntf import SplitterIntf
+from EmbeddingsIntf import EmbeddingsIntf
+from VectorDbIntf import VectorDbIntf
+
+import logging
+
+logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', encoding='utf-8', 
+                    level=os.getenv('DEBUG_LEVEL', 'DEBUG'))
 
 
-class VectorDbPgvector(ABC):
-    def __init__(self):
-        super().__init__()
+class VectorDbPgvector(VectorDbIntf):
+    def __init__(self, token_limit: int, dimension: int, splitter: SplitterIntf, embedder: EmbeddingsIntf):
+        super().__init__(token_limit, dimension, splitter, embedder)
         # postgresql://[userspec@][hostspec][/dbname][?paramspec]
         connection_info = "postgresql://%s:%s@%s:%s/%s" % (
             AppSettings.DATABASES['default']['USER'],
@@ -29,6 +36,9 @@ class VectorDbPgvector(ABC):
             "id": "bigserial PRIMARY KEY",
             "digest": "VARCHAR(255) NOT NULL UNIQUE",
             "created_at": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP",
+            "chapter_id": "BIGINT NULL",
+            "paragraph_id": "INT NULL",
+            "content": "TEXT NOT NULL",
             "embedding": "vector(%d)" % dimension,
         }
         create_table(self.conn, index_name, columns)
@@ -36,26 +46,20 @@ class VectorDbPgvector(ABC):
     def load_from_file(self, index_name: str, text_file_path: str):
         with open(text_file_path, 'r') as f:
             texts = f.read()
-        splitter = SplitterSimple()
-        list_of_texts = splitter.split(texts, AppSettings.SPLITTER_CHUNK_SIZE, overlap=0)
+        list_of_texts = self.splitter.split(texts, self.TOKEN_LIMT, overlap=0)
         self.load_from_texts(index_name, list_of_texts)
     
     def load_from_texts(self, index_name: str, list_of_texts):
-        splitter = SplitterSimple()
-        embd = EmbeddingsSimple()
         hasher = Tools.hashlib
         count_of_commited = 0
         with self.conn.cursor() as cur:
             for text in list_of_texts:
-                text_in_chunks = splitter.split(text, AppSettings.SPLITTER_CHUNK_SIZE)
+                text_in_chunks = self.splitter.split(text, self.TOKEN_LIMT)
                 for chunk in text_in_chunks:
-                    print(chunk)
-                    embeddings = embd.encode(chunk, AppSettings.EMBEDDINGS_DIM)
-                    print(embeddings)
+                    embeddings = self.embedder.encode(chunk)
                     # INSERT INTO items (embedding) VALUES ('[1,2,3]'), ('[4,5,6]');
                     # insert into myindex (digest, embedding) values ('12345678', '[1,2,3,4]');
                     embd_str = self._get_str_from_embds(embeddings)
-                    print(embd_str)
                     digest = Tools.hash_string(chunk)
                     with self.conn.cursor() as cur_pre_verify:
                         verify_sql = SQL("SELECT * FROM {} WHERE digest = {}").format(
@@ -64,25 +68,42 @@ class VectorDbPgvector(ABC):
                         )
                         cur_pre_verify.execute(verify_sql)
                         if len(cur_pre_verify.fetchall()) <= 0:
-                            insert_sql = SQL("insert into {} (digest, embedding) values ({}, {})").format(
+                            insert_sql = SQL("insert into {} (digest, embedding, content) values ({}, {}, {})").format(
                                 Identifier(index_name),
                                 digest,
-                                embd_str)
-                            print(insert_sql)
+                                embd_str,
+                                chunk)
+                            logging.debug(insert_sql)
                             try:
                                 cur.execute(insert_sql)
                                 self.conn.commit()  # Important: Commit the transaction
                                 count_of_commited += 1
-                                print("Total commited chunks: %d" % count_of_commited)
+                                logging.info("Total commited chunks: %d" % count_of_commited)
                             except psycopg.errors.UniqueViolation as e:
-                                # print(traceback.format_exc())
+                                # (traceback.format_exc())
                                 error_msg = str(e)
-                                print("Warning but ignore: %s" % error_msg)
+                                logging.warning("Warning but ignore: %s" % error_msg)
                         else:
-                            print("Ignore: record with digest [%s] already exists" % digest)
+                            logging.info("Ignore: record with digest [%s] already exists" % digest)
         
-    def similarity_search(self, query: str, k=4):
-        pass
+    def similarity_search(self, index_name: str, query: str, k=4):
+        query_embed = self._get_str_from_embds(self.embedder.encode(query))
+        
+        # SELECT * FROM items ORDER BY embedding <-> '[3,1,2]' LIMIT 5;
+        list_of_contexts = []
+        with self.conn.cursor(row_factory=psycopg.rows.dict_row) as cur_search:
+            search_sql = SQL("SELECT * FROM {} ORDER BY embedding <=> {} LIMIT {}").format(
+                Identifier(index_name),
+                query_embed,
+                k
+            )
+            cur_search.execute(search_sql)
+            
+            for record in cur_search:
+                logging.debug("Fetched result: [%d] [%s]" % (record['id'], 
+                                                             record['content']))  
+                list_of_contexts.append(record['content'])
+        return list_of_contexts
 
     def _get_str_from_embds(self, embeddings):
         embd_str = '['
@@ -94,6 +115,8 @@ class VectorDbPgvector(ABC):
         embd_str += ']'
         return embd_str
 
+    def close(self):
+        self.conn.close()
 
 def create_table(conn, table_name, columns):
     """Creates a table in the PostgreSQL database.
@@ -121,11 +144,11 @@ def create_table(conn, table_name, columns):
 
             cur.execute(create_table_sql)
             conn.commit()  # Important: Commit the transaction
-            print(f"Table '{table_name}' created successfully.")
+            logging.info(f"Table '{table_name}' created successfully (or exists already).")
 
     except psycopg.Error as e:
         conn.rollback()  # Rollback in case of error
-        print(f"Error creating table: {e}")
+        logging.error(f"Error creating table: {e}")
     
 
 class TestVectorDbPgvector(unittest.TestCase):
@@ -142,7 +165,7 @@ class TestVectorDbPgvector(unittest.TestCase):
             cur.execute("SELECT * FROM test")
             # cur.fetchall() fetchone() fetchmany()
             for record in cur:
-                print(record)
+                logging.info(record)
 
     def test_2_create_index(self):
         self.vdb.create_or_get_index(self.index_name, 4)

@@ -9,6 +9,3 @@ DATABASES = {
         'PORT': os.getenv('DBPORT','unsetdbport'),
     }
 }
-
-SPLITTER_CHUNK_SIZE = 4
-EMBEDDINGS_DIM = 4
