@@ -23,17 +23,3 @@ class AiServiceGemini(AiServiceIntf):
         logging.info("Delaying [%d] seconds" % self.rate_limit_delay)
         time.sleep(self.rate_limit_delay)
         return output_message
-
-    def make_rag_prompt(self, query, context):
-        prompt = ("""
-            You are a helpful and informative bot that answers questions using context from the reference passage included below. \
-            Be sure to respond in a complete sentence, being comprehensive, including all relevant background information. \
-            However, you are talking to a non-technical audience, so be sure to break down complicated concepts and \
-            strike a friendly and converstional tone. \
-            If you don't know the answer, just say 'I do not know'. 
-            QUESTION: '{query}'
-            PASSAGE: '{context}'
-
-            ANSWER:
-        """).format(query=query, context=context)
-        return prompt
