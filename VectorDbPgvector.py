@@ -56,11 +56,7 @@ class VectorDbPgvector(VectorDbIntf):
             for text in list_of_texts:
                 text_in_chunks = self.splitter.split(text, self.CHUNK_SIZE, overlap=32)
                 for chunk in text_in_chunks:
-                    embeddings = self.embedder.encode(chunk)
-                    # INSERT INTO items (embedding) VALUES ('[1,2,3]'), ('[4,5,6]');
-                    # insert into myindex (digest, embedding) values ('12345678', '[1,2,3,4]');
-                    embd_str = self._get_str_from_embds(embeddings)
-                    digest = Tools.hash_string(chunk)
+                    digest = Tools.hash_string(chunk)  # use digest to check existance first
                     with self.conn.cursor() as cur_pre_verify:
                         verify_sql = SQL("SELECT * FROM {} WHERE digest = {}").format(
                             Identifier(index_name),
@@ -68,6 +64,8 @@ class VectorDbPgvector(VectorDbIntf):
                         )
                         cur_pre_verify.execute(verify_sql)
                         if len(cur_pre_verify.fetchall()) <= 0:
+                            # emb a chunk only when it is new
+                            embd_str = self._get_str_from_embds(self.embedder.encode(chunk))
                             insert_sql = SQL("insert into {} (digest, embedding, content) values ({}, {}, {})").format(
                                 Identifier(index_name),
                                 digest,

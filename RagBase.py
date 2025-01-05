@@ -11,16 +11,7 @@ from AiServiceGemini import AiServiceGemini
 
 class RagBase(RagIntf):
     def __init__(self):
-        self.INDEX_NAME = "rag_base"
-        self.CHUNK_SIZE = 2048
-        self.DIM = 768
-        self.splitter: SplitterIntf = SplitterSimple()
-        self.embeder: EmbeddingsIntf = EmbeddingsGemini(self.CHUNK_SIZE, self.DIM)
-        
-        self.vector_store = VectorDbPgvector(self.CHUNK_SIZE, self.DIM, self.splitter, self.embeder)
-        self.vector_store.create_or_get_index(self.INDEX_NAME, self.DIM)
-        
-        self.gen_ai: AiServiceIntf = AiServiceGemini()
+        pass
         
     def generate_answer(self, query: str):
         related_texts = self.vector_store.similarity_search(self.INDEX_NAME, query=query, k=1)
@@ -36,17 +27,3 @@ class RagBase(RagIntf):
     def close(self):
         self.vector_store.close()
 
-
-class TestRagExtFree(unittest.TestCase):
-    def setUp(self):
-        self.rag = RagExtFree()
-        self.rag.load_file("z1.txt")
-
-    def tearDown(self):
-        self.rag.close()
-    
-    def test_1_conn(self):
-        self.rag.generate_answer("What flight can fly me from Vancouver to Seoul?")
-        
-    def test_2_conn(self):
-        self.rag.generate_answer("How much does it cost to fly from Vancouver to Seoul?")

@@ -1,24 +1,29 @@
-from abc import ABC, abstractmethod
-import google.generativeai as genai
 import os
-from EmbeddingsIntf import EmbeddingsIntf
 import logging
+import requests
+import json
+from EmbeddingsIntf import EmbeddingsIntf
+import Tools
+
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', encoding='utf-8', 
                     level=os.getenv('DEBUG_LEVEL', 'DEBUG'))
 
 
-class EmbeddingsGemini(EmbeddingsIntf):
+class EmbeddingsInternalSmall(EmbeddingsIntf):
     def __init__(self, chunk_size: int):
         super().__init__(chunk_size)
-        self.MODEL = "models/text-embedding-004"
-        self.DIM = 768
+        #self.MODEL = "nomic-embed-text:latest"
+        #self.DIM = 768
+        self.MODEL = "bge-m3"
+        self.DIM = 1024
+        self.EMBED_API = os.getenv("OLLAMA_API_URL", "http://localhost:11434/api") + "/embeddings"
         
     def encode(self, text: str):
-        genai.configure(api_key=os.environ["GEMINI_API_KEY"])
         logging.debug("Embedding req >>>>>> [%s]" % text[0:self.CHUNK_SIZE])
-        result = genai.embed_content(
-                model=self.MODEL,
-                content=text[0:self.CHUNK_SIZE])
+        data = {}
+        data["model"] = self.MODEL
+        data["prompt"] = text
+        result = Tools.post_json(self.EMBED_API, data)
         logging.debug("Embedded resp <<<<<< %s " % result)
         return result['embedding']
 

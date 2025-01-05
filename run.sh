@@ -1,5 +1,12 @@
 source venv/bin/activate
 source ~/.try-vector-db.env.sh
 
-python -m unittest RagExtFree.py    
-DEBUG_LEVEL=WARN python run-regext.py "What may be a good travel plan to get away from Vancouver?"
+python run-regoptim.py "What flight can fly me from Vancouver to Seoul?"
+exit
+python run-regoptim.py "Who is the passenger and what is the passenger's travel plan?"
+exit
+python run-regext.py "What flight can fly me from Vancouver to Seoul?"
+python run-regext.py "Who is the passenger and what is the passenger's travel plan?"
+
+python run-regint.py "What flight can fly me from Vancouver to Seoul?"
+python run-regint.py "Who is the passenger and what is the passenger's travel plan?"
