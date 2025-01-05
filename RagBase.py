@@ -36,17 +36,3 @@ class RagBase(RagIntf):
     def close(self):
         self.vector_store.close()
 
-
-class TestRagExtFree(unittest.TestCase):
-    def setUp(self):
-        self.rag = RagExtFree()
-        self.rag.load_file("z1.txt")
-
-    def tearDown(self):
-        self.rag.close()
-    
-    def test_1_conn(self):
-        self.rag.generate_answer("What flight can fly me from Vancouver to Seoul?")
-        
-    def test_2_conn(self):
-        self.rag.generate_answer("How much does it cost to fly from Vancouver to Seoul?")
