@@ -28,8 +28,8 @@
   - Index dimension stored (encoder's output)
 * Perhaps the most important decision is to choose a high-quality, high-performance, and long-term supported encoder. 
 
-# Tentative Conclusion
-* Use nomic-embed-text:latest
+# Tentative Conclusion (RegOptim)
+* Use nomic-embed-text:latest. Also use smaller CHUNK_SIZE 2048 to make it faster.
 * Keep data internally in Pgvector
 * For LLM, use Gemini Flash 1.5 when it is still free (5 req / minute)
 
