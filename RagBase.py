@@ -9,9 +9,9 @@ from EmbeddingsGemini import EmbeddingsGemini
 from AiServiceIntf import AiServiceIntf
 from AiServiceGemini import AiServiceGemini
 
-class RagExtFree(RagIntf):
+class RagBase(RagIntf):
     def __init__(self):
-        self.INDEX_NAME = "rag_ext_free"
+        self.INDEX_NAME = "rag_base"
         self.CHUNK_SIZE = 2048
         self.DIM = 768
         self.splitter: SplitterIntf = SplitterSimple()
@@ -19,7 +19,6 @@ class RagExtFree(RagIntf):
         
         self.vector_store = VectorDbPgvector(self.CHUNK_SIZE, self.DIM, self.splitter, self.embeder)
         self.vector_store.create_or_get_index(self.INDEX_NAME, self.DIM)
-        
         
         self.gen_ai: AiServiceIntf = AiServiceGemini()
         

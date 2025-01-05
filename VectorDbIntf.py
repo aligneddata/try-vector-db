@@ -4,9 +4,9 @@ from EmbeddingsIntf import EmbeddingsIntf
 
 class VectorDbIntf(ABC):
     @abstractmethod
-    def __init__(self, token_limit: int, dimension: int, splitter: SplitterIntf, embedder: EmbeddingsIntf):
+    def __init__(self, chunk_size: int, dimension: int, splitter: SplitterIntf, embedder: EmbeddingsIntf):
         super().__init__()
-        self.TOKEN_LIMT = token_limit
+        self.CHUNK_SIZE = chunk_size
         self.DIM = dimension
         self.splitter: SplitterIntf = splitter
         self.embedder: EmbeddingsIntf = embedder

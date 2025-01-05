@@ -8,16 +8,16 @@ logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', encoding='ut
 
 
 class EmbeddingsGemini(EmbeddingsIntf):
-    def __init__(self, token_limit: int, dimension: int):
-        super().__init__(token_limit, dimension)
+    def __init__(self, chunk_size: int, dimension: int):
+        super().__init__(chunk_size, dimension)
         self.MODEL = "models/text-embedding-004"
         
     def encode(self, text: str):
         genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-        logging.debug("Embedding req >>>>>> [%s]" % text[0:self.TOKEN_LIMIT])
+        logging.debug("Embedding req >>>>>> [%s]" % text[0:self.CHUNK_SIZE])
         result = genai.embed_content(
                 model=self.MODEL,
-                content=text[0:self.TOKEN_LIMIT])
+                content=text[0:self.CHUNK_SIZE])
         logging.debug("Embedded resp <<<<<< %s " % result)
         return result['embedding']
 

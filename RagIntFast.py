@@ -1,46 +1,31 @@
 import unittest
-from abc import ABC, abstractmethod
-from RagIntf import RagIntf
 from VectorDbPgvector import VectorDbPgvector
 from SplitterIntf import SplitterIntf
 from SplitterSimple import SplitterSimple
 from EmbeddingsIntf import EmbeddingsIntf
-from EmbeddingsGemini import EmbeddingsGemini
+from EmbeddingsInternalFast import EmbeddingsInternalFast
 from AiServiceIntf import AiServiceIntf
 from AiServiceGemini import AiServiceGemini
+from RagBase import RagBase
 
-class RagExtFree(RagIntf):
+# RAG using all internal resources and using slim models
+class RagIntFast(RagBase):
     def __init__(self):
-        self.INDEX_NAME = "rag_ext_free"
-        self.CHUNK_SIZE = 2048
+        self.INDEX_NAME = "rag_int_fast"
+        self.CHUNK_SIZE = 8192
         self.DIM = 768
         self.splitter: SplitterIntf = SplitterSimple()
-        self.embeder: EmbeddingsIntf = EmbeddingsGemini(self.CHUNK_SIZE, self.DIM)
+        self.embeder: EmbeddingsIntf = EmbeddingsInternalFast(self.CHUNK_SIZE, self.DIM)
         
         self.vector_store = VectorDbPgvector(self.CHUNK_SIZE, self.DIM, self.splitter, self.embeder)
         self.vector_store.create_or_get_index(self.INDEX_NAME, self.DIM)
         
-        
         self.gen_ai: AiServiceIntf = AiServiceGemini()
-        
-    def generate_answer(self, query: str):
-        related_texts = self.vector_store.similarity_search(self.INDEX_NAME, query=query, k=1)
-        context = ''
-        for text in related_texts:
-            context += "\n\n" + text
-        answer = self.gen_ai.get_response(query, context)
-        return answer
-    
-    def load_file(self, filename):
-        self.vector_store.load_from_file(self.INDEX_NAME, filename)
-
-    def close(self):
-        self.vector_store.close()
 
 
 class TestRagExtFree(unittest.TestCase):
     def setUp(self):
-        self.rag = RagExtFree()
+        self.rag = RagIntFast()
         self.rag.load_file("z1.txt")
 
     def tearDown(self):
