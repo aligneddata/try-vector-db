@@ -9,13 +9,13 @@ logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', encoding='ut
 
 
 class EmbeddingsInternalFast(EmbeddingsIntf):
-    def __init__(self, token_limit: int, dimension: int):
-        super().__init__(token_limit, dimension)
+    def __init__(self, chunk_size: int, dimension: int):
+        super().__init__(chunk_size, dimension)
         self.MODEL = "nomic-embed-text:latest"
         self.EMBED_API = os.getenv("OLLAMA_API_URL", "http://localhost:11434/api") + "/embeddings"
         
     def encode(self, text: str):
-        logging.debug("Embedding req >>>>>> [%s]" % text[0:self.TOKEN_LIMIT])
+        logging.debug("Embedding req >>>>>> [%s]" % text[0:self.CHUNK_SIZE])
         data = {}
         data["model"] = self.MODEL
         data["prompt"] = text

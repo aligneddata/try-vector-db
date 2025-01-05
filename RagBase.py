@@ -12,12 +12,12 @@ from AiServiceGemini import AiServiceGemini
 class RagBase(RagIntf):
     def __init__(self):
         self.INDEX_NAME = "rag_base"
-        self.TOKEN_LIMIT = 2048
+        self.CHUNK_SIZE = 2048
         self.DIM = 768
         self.splitter: SplitterIntf = SplitterSimple()
-        self.embeder: EmbeddingsIntf = EmbeddingsGemini(self.TOKEN_LIMIT, self.DIM)
+        self.embeder: EmbeddingsIntf = EmbeddingsGemini(self.CHUNK_SIZE, self.DIM)
         
-        self.vector_store = VectorDbPgvector(self.TOKEN_LIMIT, self.DIM, self.splitter, self.embeder)
+        self.vector_store = VectorDbPgvector(self.CHUNK_SIZE, self.DIM, self.splitter, self.embeder)
         self.vector_store.create_or_get_index(self.INDEX_NAME, self.DIM)
         
         self.gen_ai: AiServiceIntf = AiServiceGemini()

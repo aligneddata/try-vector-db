@@ -18,8 +18,8 @@ logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', encoding='ut
 
 
 class VectorDbPgvector(VectorDbIntf):
-    def __init__(self, token_limit: int, dimension: int, splitter: SplitterIntf, embedder: EmbeddingsIntf):
-        super().__init__(token_limit, dimension, splitter, embedder)
+    def __init__(self, chunk_size: int, dimension: int, splitter: SplitterIntf, embedder: EmbeddingsIntf):
+        super().__init__(chunk_size, dimension, splitter, embedder)
         # postgresql://[userspec@][hostspec][/dbname][?paramspec]
         connection_info = "postgresql://%s:%s@%s:%s/%s" % (
             AppSettings.DATABASES['default']['USER'],
@@ -46,7 +46,7 @@ class VectorDbPgvector(VectorDbIntf):
     def load_from_file(self, index_name: str, text_file_path: str):
         with open(text_file_path, 'r') as f:
             texts = f.read()
-        list_of_texts = self.splitter.split(texts, self.TOKEN_LIMT, overlap=0)
+        list_of_texts = self.splitter.split(texts, self.CHUNK_SIZE, overlap=32)
         self.load_from_texts(index_name, list_of_texts)
     
     def load_from_texts(self, index_name: str, list_of_texts):
@@ -54,7 +54,7 @@ class VectorDbPgvector(VectorDbIntf):
         count_of_commited = 0
         with self.conn.cursor() as cur:
             for text in list_of_texts:
-                text_in_chunks = self.splitter.split(text, self.TOKEN_LIMT)
+                text_in_chunks = self.splitter.split(text, self.CHUNK_SIZE, overlap=32)
                 for chunk in text_in_chunks:
                     embeddings = self.embedder.encode(chunk)
                     # INSERT INTO items (embedding) VALUES ('[1,2,3]'), ('[4,5,6]');

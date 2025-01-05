@@ -21,7 +21,7 @@ class TestEmbeddingsSimple(unittest.TestCase):
         self.embd = EmbeddingsSimple()
         self.test_str = 'abcd1234'
         self.test_embds = [97, 98, 99, 100, 49, 50, 51, 52]
-        self.dim = AppSettings.EMBEDDINGS_DIM
+        self.dim = 8
         
     def test_1_enc(self):
         print(self.embd.encode(self.test_str, self.dim))
