@@ -10,9 +10,12 @@ logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', encoding='ut
 
 
 class EmbeddingsInternalSmall(EmbeddingsIntf):
-    def __init__(self, chunk_size: int, dimension: int):
-        super().__init__(chunk_size, dimension)
-        self.MODEL = "nomic-embed-text:latest"
+    def __init__(self, chunk_size: int):
+        super().__init__(chunk_size)
+        #self.MODEL = "nomic-embed-text:latest"
+        #self.DIM = 768
+        self.MODEL = "bge-m3"
+        self.DIM = 1024
         self.EMBED_API = os.getenv("OLLAMA_API_URL", "http://localhost:11434/api") + "/embeddings"
         
     def encode(self, text: str):

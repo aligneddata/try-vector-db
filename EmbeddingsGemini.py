@@ -8,9 +8,10 @@ logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', encoding='ut
 
 
 class EmbeddingsGemini(EmbeddingsIntf):
-    def __init__(self, chunk_size: int, dimension: int):
-        super().__init__(chunk_size, dimension)
+    def __init__(self, chunk_size: int):
+        super().__init__(chunk_size)
         self.MODEL = "models/text-embedding-004"
+        self.DIM = 768
         
     def encode(self, text: str):
         genai.configure(api_key=os.environ["GEMINI_API_KEY"])
